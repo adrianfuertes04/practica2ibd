@@ -1,0 +1,78 @@
+version: '3'
+services:
+  # Almacenamiento compatible con S3 (MinIO)
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"  # API S3
+      - "9001:9001"  # Consola Web
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Inicialización de buckets de MinIO
+  mc-init:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc config host add minio http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      mc mb minio/raw-ingestion-zone;
+      mc mb minio/process-zone;
+      mc mb minio/access-zone;
+      mc mb minio/govern-zone-metadata;
+      mc mb minio/govern-zone-security;
+      exit 0;
+      "
+
+  # Motor de consulta SQL para datos en MinIO
+  trino:
+    image: trinodb/trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/trino:/etc/trino
+
+  # Base de datos relacional para análisis SQL
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: madrid_sostenible
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+
+  # Cliente Python para procesamiento de datos
+  python-client:
+    build:
+      context: .
+      dockerfile: ./config/python/Dockerfile
+    volumes:
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+    depends_on:
+      - minio
+      - postgres
+
+  # Visualización para usuarios no técnicos
+  superset:
+    image: apache/superset
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./config/superset:/app/superset_config.py
+    depends_on:
+      - postgres
