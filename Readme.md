@@ -114,11 +114,28 @@ Esto inicia MinIO, PostgreSQL, Superset y crea los buckets necesarios en MinIO.
 **a) Científicos de datos (Python/Notebooks):**
 El archivo obj1.ipynb en la carpeta objetivos muestra como los científicos de datos, empresas y organizaciones pueden hacer a los archivos de la access-zone y procesar los datos según necesiten.
 
+
+
 **b) Gestores municipales (SQL/Superset):**
 Los gestores municipales pueden conectarse a la base de datos creada y hacer las consultas que necesiten. En las siguientes capturas se ve el buen funcionamiento:
-![Relacionar densidad de población con infraestructua transporte](imagenes/consulta1.jpg)
+
+Relacionar densidad de población con infraestructua transporte:
+![](imagenes/consulta1.jpg)
+
+Rutas de BiciMAD más populares y variación uso entre usuarios abonados y ocasionales:
 ![](imagenes/consulta2.1.jpg)
 ![](imagenes/consulta2.2.jpg)
 ![](imagenes/consulta2.3.jpg)
 ![](imagenes/consulta2.4.jpg)
 
+
+
+**c) Ciudadanos y asociaciones (Superset):**
+Hemos diseñado algunos gráficos:
+- Weekly variability:
+  ![](imagenes/weekly-variability.jpg)
+
+- Ocupación por horas y parking:
+  ![](imagenes/ocupacion_horas.png)
+  ![](imagenes/ocupacion_horas_2.png)
+  
