@@ -54,8 +54,54 @@ def rutes_users_popularity():
 
     return grouped_df
 
+def clean_and_merge_parkings():
+    # Descargar los datos parquet de MinIO usando la función proporcionada
+    parkings = download_dataframe_from_minio('process-zone', 'invent/parkings.parquet', format='parquet')
+    ubicaciones = download_dataframe_from_minio('process-zone', 'apar/aparcamientos.parquet', format='parquet')
+
+    # Limpieza básica
+    parkings = parkings.dropna()  # Eliminar filas con valores nulos
+    ubicaciones = ubicaciones.dropna()
+
+    # Normalizar nombres de columnas
+    parkings.columns = parkings.columns.str.lower()
+    ubicaciones.columns = ubicaciones.columns.str.lower()
+
+    # Unir los dataframes por la columna común (asumiendo 'id_parking')
+    merged = pd.merge(parkings, ubicaciones, on='parking_id', how='left')
+
+    return merged
 
 def main():
+    print("Starting data preparation for the Access Zone...")
+
+    # 1. Crear dataset de aparcamientos limpio y unido
+    parkings_unidos = clean_and_merge_parkings()
+
+    # 2. Subir el dataset unido a la zona access en formato parquet
+    meta_parkings = {
+        'description': 'Datos limpios y unidos de aparcamientos públicos con ubicación',
+        'purpose': 'Visualización y análisis para ciudadanos',
+        'refresh_frequency': 'Daily',
+        'target_users': 'Ciudadanos y asociaciones vecinales',
+    }
+
+    upload_dataframe_to_minio(
+        parkings_unidos,
+        'access-zone',
+        'analytics/parkings_unidos.parquet',
+        format='parquet',
+        metadata=meta_parkings
+    )
+
+    log_data_transformation(
+        'process-zone', 'parkings_rotacion.parquet',
+        'access-zone', 'analytics/parkings_unidos.parquet',
+        'Datos limpios y unidos de aparcamientos públicos con ubicación'
+    )
+
+    print("Access Zone preparation complete!")
+
     print("Starting data preparation for the Access Zone...")
 
     # 1. Create analytics-ready datasets
