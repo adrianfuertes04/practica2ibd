@@ -61,5 +61,19 @@ services:
       - trino
       - minio
 
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_PASSWORD: ejemplo
+      POSTGRES_USER: postgres
+      POSTGRES_DB: madrid_sostenible
+    volumes:
+      - ./data/raw/dump-bbdd-municipal.sql:/docker-entrypoint-initdb.d/dump-bbdd-municipal.sql
+    ports:
+      - "5432:5432"
+
+
 volumes:
   minio_data:
+  pg_data:

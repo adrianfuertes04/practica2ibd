@@ -1,274 +1,168 @@
 import pandas as pd
-import numpy as np
-from utils import (
-    download_dataframe_from_minio,
-    upload_dataframe_to_minio,
-    log_data_transformation,
-    validate_data_quality
-)
+from utils import download_dataframe_from_minio, upload_dataframe_to_minio, log_data_transformation, validate_data_quality,download_file_from_minio
+import json
+def standardize_bicimad_usos(df):
+    # Renombrado de columnas y tipos
+    df = df.rename(columns={
+        'id': 'id',
+        'usuario_id': 'user_id',
+        'tipo_usuario': 'user_type',
+        'estacion_origen': 'station_origin_id',
+        'estacion_destino': 'station_dest_id',
+        'fecha_hora_inicio': 'start_time',
+        'fecha_hora_fin': 'end_time',
+        'duracion_segundos': 'duration_seconds',
+        'distancia_km': 'distance_km',
+        'calorias_estimadas': 'estimated_calories',
+        'co2_evitado_gramos': 'co2_saved_grams'
+    })
+    # Normalización de tipo de usuario
+    df['user_type'] = df['user_type'].str.lower().replace({'anual': 'annual', 'ocasional': 'occasional'})
+    # Fechas a datetime
+    df['start_time'] = pd.to_datetime(df['start_time'])
+    df['end_time'] = pd.to_datetime(df['end_time'])
+    # Derivar campos temporales
+    df['year'] = df['start_time'].dt.year
+    df['month'] = df['start_time'].dt.month
+    df['day'] = df['start_time'].dt.day
+    df['hour'] = df['start_time'].dt.hour
+    df['weekday'] = df['start_time'].dt.weekday
+    # Tipos
+    int_cols = ['id', 'user_id', 'station_origin_id', 'station_dest_id', 'duration_seconds', 'estimated_calories', 'co2_saved_grams', 'year', 'month', 'day', 'hour', 'weekday']
+    float_cols = ['distance_km']
+    df[int_cols] = df[int_cols].astype('Int64')
+    df[float_cols] = df[float_cols].astype(float)
+    return df
 
+def standardize_aparcamientos_info(df):
+    df = df.rename(columns={
+        'aparcamiento_id': 'parking_id',
+        'nombre': 'name',
+        'direccion': 'address',
+        'capacidad_total': 'total_capacity',
+        'plazas_movilidad_reducida': 'reduced_mobility_spaces',
+        'plazas_vehiculos_electricos': 'ev_spaces',
+        'tarifa_hora_euros': 'hourly_rate_eur',
+        'horario': 'schedule',
+        'latitud': 'latitude',
+        'longitud': 'longitude'
+    })
+    df['hourly_rate_eur'] = df['hourly_rate_eur'].astype(float)
+    df['latitude'] = df['latitude'].astype(float)
+    df['longitude'] = df['longitude'].astype(float)
+    df['total_capacity'] = df['total_capacity'].astype('Int64')
+    df['reduced_mobility_spaces'] = df['reduced_mobility_spaces'].astype('Int64')
+    df['ev_spaces'] = df['ev_spaces'].astype('Int64')
+    # Normalizar horario
+    df['schedule'] = df['schedule'].str.lower().replace({'24 horas': '24h'})
+    return df
 
-df_trafico = pd.read_csv('../data/raw/trafico-horario.csv')
-df_parkings = pd.read_csv('../data/raw/parkings-rotacion.csv')
-df_bicis = pd.read_csv('../data/raw/bicimad-usos.csv')
-df_avisa = pd.read_json("../data/raw/avisamadrid.json")
+def standardize_parkings_rotacion(df):
+    df = df.rename(columns={
+        'aparcamiento_id': 'parking_id',
+        'fecha': 'date',
+        'hora': 'hour',
+        'plazas_ocupadas': 'occupied_spaces',
+        'plazas_libres': 'free_spaces',
+        'porcentaje_ocupacion': 'occupancy_pct'
+    })
+    # Unir fecha y hora en timestamp
+    df['timestamp'] = pd.to_datetime(df['date'] + ' ' + df['hour'].astype(str).str.zfill(2) + ':00:00')
+    df['year'] = df['timestamp'].dt.year
+    df['month'] = df['timestamp'].dt.month
+    df['day'] = df['timestamp'].dt.day
+    df['weekday'] = df['timestamp'].dt.weekday
+    # Tipos
+    df['parking_id'] = df['parking_id'].astype('Int64')
+    df['occupied_spaces'] = df['occupied_spaces'].astype('Int64')
+    df['free_spaces'] = df['free_spaces'].astype('Int64')
+    df['occupancy_pct'] = df['occupancy_pct'].astype(float)
+    df['hour'] = df['hour'].astype('Int64')
+    return df[['parking_id', 'timestamp', 'occupied_spaces', 'free_spaces', 'occupancy_pct', 'year', 'month', 'day', 'hour', 'weekday']]
 
-def standardize_data(df):
-    """Standardize and clean transaction data."""
-    # Make a copy to avoid modifying the original
-    processed_df = df.copy()
+def standardize_trafico_horario(df):
+    df = df.rename(columns={
+        'sensor_id': 'sensor_id',
+        'fecha_hora': 'timestamp',
+        'total_vehiculos': 'total_vehicles',
+        'coches': 'cars',
+        'motos': 'motorcycles',
+        'camiones': 'trucks',
+        'buses': 'buses',
+        'velocidad_media_kmh': 'avg_speed_kmh',
+        'nivel_congestion': 'congestion_level'
+    })
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    # Normalizar nivel de congestión
+    df['congestion_level'] = df['congestion_level'].str.lower().replace({'baja': 'low', 'moderada': 'moderate', 'alta': 'high'})
+    # Tipos
+    int_cols = ['sensor_id', 'total_vehicles', 'cars', 'motorcycles', 'trucks', 'buses']
+    df[int_cols] = df[int_cols].astype('Int64')
+    df['avg_speed_kmh'] = df['avg_speed_kmh'].astype(float)
+    # Derivar campos temporales
+    df['year'] = df['timestamp'].dt.year
+    df['month'] = df['timestamp'].dt.month
+    df['day'] = df['timestamp'].dt.day
+    df['hour'] = df['timestamp'].dt.hour
+    df['weekday'] = df['timestamp'].dt.weekday
+    return df
 
-    # Convert date string to datetime if needed
-    if not pd.api.types.is_datetime64_any_dtype(processed_df['fecha_hora']):
-        processed_df['fecha_hora'] = pd.to_datetime(processed_df['fecha_hora'])
-
-    # Extract date components for analysis
-    processed_df['year'] = processed_df['fecha_hora'].dt.year
-    processed_df['month'] = processed_df['fecha_hora'].dt.month
-    processed_df['day'] = processed_df['fecha_hora'].dt.day
-    processed_df['day_of_week'] = processed_df['fecha_hora'].dt.dayofweek
-    processed_df['hora'] = processed_df['fecha_hora'].dt.hour
-
-    # Categorize velocidad_media_kmh into 'Baja', 'Media', 'Elevada'
-    def categorize_velocidad(amount):
-        if amount < 35:
-            return 'Baja'
-        elif amount < 60:
-            return 'Media'
-        else:
-            return 'Elevada'
-    processed_df['velocidad_media'] = processed_df['velocidad_media_kmh'].apply(categorize_velocidad)
-    processed_df.drop(columns=['fecha_hora'], inplace=True)
-    return processed_df
-
-df_t = standardize_data(df_trafico)
-
-def opt_data(df):
+def standardize_avisa(df):
     """Enrich and standardize customer data."""
     # Make a copy to avoid modifying the original
     processed_df = df.copy()
 
     # Convert date string to datetime if needed
-    if not pd.api.types.is_datetime64_any_dtype(processed_df['fecha']):
-        processed_df['fecha'] = pd.to_datetime(processed_df['fecha'])
-
-
-
-    # Group ocupacion into categories
-    def ocupacion_group(ocupacion):
-        if ocupacion < 5:
-            return 'Vacio'
-        elif ocupacion >= 5 and ocupacion < 25:
-            return 'Semivacio'
-        elif ocupacion >= 25 and ocupacion < 75:
-            return 'Medio'
-        elif ocupacion >= 75 and ocupacion < 95:
-            return 'Semilleno'
-        elif ocupacion >= 95:  
-            return 'LLeno'
-    processed_df['ocupacion'] = processed_df['porcentaje_ocupacion'].apply(ocupacion_group)
-
+    if not pd.api.types.is_datetime64_any_dtype(processed_df['fecha_reporte']):
+        processed_df['fecha_reporte'] = pd.to_datetime(processed_df['fecha_reporte'])
+   
 
 
     return processed_df
 
-df_p = opt_data(df_parkings)
 
-def opt_data(df):
-    """Enrich and standardize customer data."""
-    # Make a copy to avoid modifying the original
-    processed_df = df.copy()
-
-    # Convert date string to datetime if needed
-    if not pd.api.types.is_datetime64_any_dtype(processed_df['fecha']):
-        processed_df['fecha'] = pd.to_datetime(processed_df['fecha'])
-
-
-
-    # Group ocupacion into categories
-    def ocupacion_group(ocupacion):
-        if ocupacion < 5:
-            return 'Vacio'
-        elif ocupacion >= 5 and ocupacion < 25:
-            return 'Semivacio'
-        elif ocupacion >= 25 and ocupacion < 75:
-            return 'Medio'
-        elif ocupacion >= 75 and ocupacion < 95:
-            return 'Semilleno'
-        elif ocupacion >= 95:  
-            return 'LLeno'
-    processed_df['ocupacion'] = processed_df['porcentaje_ocupacion'].apply(ocupacion_group)
-
-
-
-    return processed_df
-
-df_p = opt_data(df_parkings)
-def standardize_bicis(df):
-    """Standardize and enrich product data."""
-    # Make a copy to avoid modifying the original
-    processed_df = df.copy()
-
-    # Standardize categories
-    if not pd.api.types.is_datetime64_any_dtype(processed_df['fecha_hora_inicio']):
-        processed_df['fecha_hora_inicio'] = pd.to_datetime(processed_df['fecha_hora_inicio'])
-    processed_df['hora'] = processed_df['fecha_hora_inicio'].dt.hour
-
-    def duracion_group(days):
-        if days < 1000:
-            return 'Corta'
-        elif days < 1300:
-            return 'Promedio'
-        else:
-            return 'Larga'
-    # Convert duration from seconds to a more readable format
-
-
-    processed_df['duracion'] = processed_df['duracion_segundos'].apply(duracion_group)
-
-
-    return processed_df
-df_bicis = standardize_bicis(df_bicis)
 
 def main():
-    print("Starting data processing stage...")
+    # Leer datos desde raw-ingestion-zone
+    bicimad_df = download_dataframe_from_minio('raw-ingestion-zone', 'data/bicimad.csv', format='csv')
+    aparcamientos_df = download_dataframe_from_minio('raw-ingestion-zone', 'apar/ext_aparcamientos_info.csv', format='csv')
+    parkings_df = download_dataframe_from_minio('raw-ingestion-zone', 'invent/parkings-rotacion.csv', format='csv')
+    trafico_df = download_dataframe_from_minio('raw-ingestion-zone', 'traf/trafcio-horario.csv', format='csv')
+    download_file_from_minio('raw-ingestion-zone', 'avisos/avisamadrid.json', '/avisos/avisamadrid.json')
+    # Estandarización
 
-    # 1. Download data from raw-ingestion-zone
-    print("\nDownloading data from raw-ingestion-zone...")
-    try:
-        transactions_df = download_dataframe_from_minio('raw-ingestion-zone', 'sales/transactions.csv')
-        customers_df = download_dataframe_from_minio('raw-ingestion-zone', 'crm/customers.csv')
-        products_df = download_dataframe_from_minio('raw-ingestion-zone', 'inventory/products.csv')
-        print(f"Downloaded {len(transactions_df)} transactions, {len(customers_df)} customers, {len(products_df)} products")
-    except Exception as e:
-        print(f"Error downloading data: {e}")
-        return
+    bicimad_std = standardize_bicimad_usos(bicimad_df)
+    aparcamientos_std = standardize_aparcamientos_info(aparcamientos_df)
+    parkings_std = standardize_parkings_rotacion(parkings_df)
+    trafico_std = standardize_trafico_horario(trafico_df)
+    avisa_df = pd.read_json('/avisos/avisamadrid.json', encoding='utf-8')
+    avisa_std = standardize_avisa(avisa_df)
+    
+    # Validación de calidad (puedes ajustar las reglas)
+    validate_data_quality(avisa_std, 'avisa_process', rules={'no_nulls': ['id', 'fecha', 'tipo'], 'unique': ['id']})
+    validate_data_quality(bicimad_std, 'bicimad_process', rules={'no_nulls': ['id', 'user_id', 'start_time'], 'unique': ['id']})
+    validate_data_quality(aparcamientos_std, 'aparcamientos_process', rules={'no_nulls': ['parking_id', 'name'], 'unique': ['parking_id']})
+    validate_data_quality(parkings_std, 'parkings_process', rules={'no_nulls': ['parking_id', 'timestamp'], 'unique': []})
+    validate_data_quality(trafico_std, 'trafico_process', rules={'no_nulls': ['sensor_id', 'timestamp'], 'unique': []})
+    
+    # Subir a process-zone en formato parquet
+    upload_dataframe_to_minio(bicimad_std, 'process-zone', 'data/bicimad.parquet', format='parquet')
+    log_data_transformation('raw-ingestion-zone', 'data/bicimad.csv', 'process-zone', 'data/bicimad.parquet', 'Estandarización de BiciMAD usos y enriquecimiento temporal')
+    
+    upload_dataframe_to_minio(aparcamientos_std, 'process-zone', 'apar/aparcamientos.parquet', format='parquet')
+    log_data_transformation('raw-ingestion-zone', 'apar/ext_aparcamientos_info.csv', 'process-zone', 'apar/aparcamientos.parquet', 'Estandarización de información de aparcamientos')
+    
+    upload_dataframe_to_minio(parkings_std, 'process-zone', 'invent/parkings.parquet', format='parquet')
+    log_data_transformation('raw-ingestion-zone', 'invent/parkings-rotacion.csv', 'process-zone', 'invent/parkings.parquet', 'Estandarización y enriquecimiento temporal de parkings de rotación')
+    
+    upload_dataframe_to_minio(trafico_std, 'process-zone', 'traf/trafico.parquet', format='parquet')
+    log_data_transformation('raw-ingestion-zone', 'traf/trafcio-horario.csv', 'process-zone', 'traf/trafico.parquet', 'Estandarización y enriquecimiento temporal de tráfico horario')
+    
+    upload_dataframe_to_minio(avisa_std, 'process-zone', 'avisa/avisos.parquet', format='parquet')
+    log_data_transformation('raw-ingestion-zone', 'avisos/avisamadrid.json', 'process-zone', 'avisa/avisos.parquet', 'Estandarización y enriquecimiento de avisos del portal Avisa Madrid')
 
-    # 2. Process and transform the data
-    print("\nTransforming data...")
-
-    # Process transactions
-    processed_transactions = standardize_transaction_data(transactions_df)
-    print("Transaction data processed and standardized")
-
-    # Validate transaction data quality
-    transaction_rules = {
-        'no_nulls': ['transaction_id', 'customer_id', 'product_id', 'amount', 'payment_method'],
-        'unique': ['transaction_id']
-    }
-    validate_data_quality(processed_transactions, 'processed_transactions', transaction_rules)
-
-    # Process customers
-    processed_customers = enrich_customer_data(customers_df)
-    print("Customer data processed and enriched")
-
-    # Validate customer data quality
-    customer_rules = {
-        'no_nulls': ['customer_id', 'email'],
-        'unique': ['customer_id', 'email']
-    }
-    validate_data_quality(processed_customers, 'processed_customers', customer_rules)
-
-    # Process products
-    processed_products = standardize_product_data(products_df)
-    print("Product data processed and standardized")
-
-    # Validate product data quality
-    product_rules = {
-        'no_nulls': ['product_id', 'product_name', 'category'],
-        'unique': ['product_id']
-    }
-    validate_data_quality(processed_products, 'processed_products', product_rules)
-
-    # Create transaction-product view
-    transaction_product_view = create_transaction_product_view(processed_transactions, processed_products)
-    print("Created transaction-product integrated view")
-
-    # 3. Upload to process-zone in Parquet format (columnar storage for better performance)
-    print("\nUploading processed data to process-zone...")
-
-    # Upload processed transactions
-    transaction_meta = {
-        'description': 'Standardized transaction data with derived fields',
-        'primary_keys': ['transaction_id'],
-        'foreign_keys': ['customer_id', 'product_id'],
-        'transformations': 'Added date components, standardized payment methods, added amount categories'
-    }
-    upload_dataframe_to_minio(
-        processed_transactions,
-        'process-zone',
-        'sales/transactions.parquet',
-        format='parquet',
-        metadata=transaction_meta
-    )
-    log_data_transformation(
-        'raw-ingestion-zone', 'sales/transactions.csv',
-        'process-zone', 'sales/transactions.parquet',
-        'Standardized transaction data and converted to Parquet format'
-    )
-
-    # Upload processed customers
-    customer_meta = {
-        'description': 'Enriched customer data with derived fields',
-        'primary_keys': ['customer_id'],
-        'transformations': 'Added tenure calculation, customer segments, standardized countries, added regions'
-    }
-    upload_dataframe_to_minio(
-        processed_customers,
-        'process-zone',
-        'crm/customers.parquet',
-        format='parquet',
-        metadata=customer_meta
-    )
-    log_data_transformation(
-        'raw-ingestion-zone', 'crm/customers.csv',
-        'process-zone', 'crm/customers.parquet',
-        'Enriched customer data and converted to Parquet format'
-    )
-
-    # Upload processed products
-    product_meta = {
-        'description': 'Standardized product data with derived fields',
-        'primary_keys': ['product_id'],
-        'transformations': 'Added price tiers, standardized categories, improved availability status'
-    }
-    upload_dataframe_to_minio(
-        processed_products,
-        'process-zone',
-        'inventory/products.parquet',
-        format='parquet',
-        metadata=product_meta
-    )
-    log_data_transformation(
-        'raw-ingestion-zone', 'inventory/products.csv',
-        'process-zone', 'inventory/products.parquet',
-        'Standardized product data and converted to Parquet format'
-    )
-
-    # Upload transaction-product view
-    view_meta = {
-        'description': 'Integrated view of transactions and products',
-        'source_tables': ['transactions', 'products'],
-        'join_keys': ['product_id'],
-        'transformations': 'Joined transaction data with product information'
-    }
-    upload_dataframe_to_minio(
-        transaction_product_view,
-        'process-zone',
-        'integrated/transaction_product_view.parquet',
-        format='parquet',
-        metadata=view_meta
-    )
-    log_data_transformation(
-        'multiple', 'multiple',
-        'process-zone', 'integrated/transaction_product_view.parquet',
-        'Created integrated view joining transactions and products'
-    )
-
-    print("\nData processing complete!")
-    print("Note: In the Process Zone, data has been cleaned, standardized, and enriched.")
-    print("The data is now stored in Parquet format for better query performance.")
-    print("Metadata and transformation logs have been recorded in the govern-zone.")
+    print("Procesamiento y subida a process-zone completados.")
 
 if __name__ == "__main__":
     main()
+

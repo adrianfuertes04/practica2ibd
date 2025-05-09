@@ -9,6 +9,8 @@ RUN apt-get update && \
 # Install Python packages
 RUN pip install --no-cache-dir \
     minio \
+    s3fs \
+    pyarrow \
     pandas \
     pyarrow>=7.0.0 \
     requests \
@@ -23,3 +25,4 @@ WORKDIR /scripts
 
 # Keep container running
 CMD ["tail", "-f", "/dev/null"]
+
