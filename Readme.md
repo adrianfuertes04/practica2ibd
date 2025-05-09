@@ -72,8 +72,8 @@ Infraestructura de datos para la ciudad inteligente de Madrid, integrando MinIO,
 
 1. **Clonar el repositorio y preparar datos:**
 ```
-git clone <repo_url>
-cd <repo_dir>
+git clone git@github.com:adrianfuertes04/practica2ibd.git
+cd practica2ibd
 ```
 
 2. **Levantar la infraestructura:**
@@ -91,23 +91,34 @@ Esto inicia MinIO, PostgreSQL, Superset y crea los buckets necesarios en MinIO.[
   docker exec -it python-client python /scripts/process_data.py
   docker exec -it python-client python /scripts/access_data.py
   ```
+- Ejecutar el archivo *dimensional_bbdd.ipynb*
+
+  
 
 4. **Acceder a los servicios:**
 
 | Servicio   | URL                     | Usuario    | Contraseña  |
 |------------|-------------------------|------------|-------------|
 | MinIO      | http://localhost:9001   | minioadmin | minioadmin  |
-| PostgreSQL | localhost:5432          | postgres   | ejemplo     |
 | Superset   | http://localhost:8088   | admin      | admin123    |
 
 5. **Configurar Superset:**
 - Entrar en Superset y conectar la base de datos PostgreSQL.
-- Crear datasets y dashboards a partir de las tablas/datasets analíticos.
+- Ejecutar las consultas SQL necesarias.
+- Crear dashboards a partir de las tablas/datasets analíticos.
 
 ---
 
 ## 5. Ejemplos de Uso y Soporte a las Consultas
 
 **a) Científicos de datos (Python/Notebooks):**
-- Acceso programático a datos de congestión:
+El archivo obj1.ipynb en la carpeta objetivos muestra como los científicos de datos, empresas y organizaciones pueden hacer a los archivos de la access-zone y procesar los datos según necesiten.
+
+**b) Gestores municipales (SQL/Superset):**
+Los gestores municipales pueden conectarse a la base de datos creada y hacer las consultas que necesiten. En las siguientes capturas se ve el buen funcionamiento:
+![](consulta1.jpg)
+![](consulta2.1.jpg)
+![](consulta2.2.jpg)
+![](consulta2.3.jpg)
+![](consulta2.4.jpg)
 
