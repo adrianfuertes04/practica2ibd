@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir \
     python-dotenv \
     pyyaml \
     matplotlib \
+    Pillow \
     great-expectations
 
 # Set working directory

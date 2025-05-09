@@ -72,8 +72,37 @@ services:
       - ./data/raw/dump-bbdd-municipal.sql:/docker-entrypoint-initdb.d/dump-bbdd-municipal.sql
     ports:
       - "5432:5432"
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_WEBSERVER_PORT: 8088
+      SUPERSET_DB__HOST: postgres
+      SUPERSET_DB__PORT: 5432
+      SUPERSET_DB__NAME: madrid_sostenible
+      SUPERSET_DB__USER: postgres
+      SUPERSET_DB__PASSWORD: ejemplo
+      SUPERSET_SECRET_KEY : 'cfl9+Hr44VnRzBBfT8TPSOPAx1EupHIs9uMI1pFOnus='
+      SUPERSET_ADMIN_USER: admin
+      SUPERSET_ADMIN_PASSWORD: adminpassword
+    command: >
+          /bin/bash -c "
+          superset db upgrade &&
+          superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin123 &&
+          superset init &&
+          superset run -h 0.0.0.0 -p 8088
+          "
 
+    depends_on:
+        - postgres
+    volumes:
+        - superset_home:/app/superset_home
 
 volumes:
   minio_data:
   pg_data:
+  superset_home:
+
+
