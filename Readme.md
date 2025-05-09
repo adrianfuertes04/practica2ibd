@@ -46,19 +46,19 @@ Infraestructura de datos para la ciudad inteligente de Madrid, integrando MinIO,
 ## 3. Procesos de Transformación Implementados
 
 - **Ingesta:**  
-  - Scripts Python (`ingest_data.py`) cargan los datos originales a MinIO en `raw-ingestion-zone`.[6]
+  - Scripts Python (`ingest_data.py`) cargan los datos originales a MinIO en `raw-ingestion-zone`.
 - **Procesamiento y estandarización:**  
-  - Limpieza y enriquecimiento de datos (`process_data.py`): normalización de columnas, tipos, fechas, derivación de campos temporales, validación de calidad.[7]
+  - Limpieza y enriquecimiento de datos (`process_data.py`): normalización de columnas, tipos, fechas, derivación de campos temporales, validación de calidad.
   - Resultados almacenados en MinIO `process-zone` en formato Parquet.
 - **Transformación avanzada y agregación:**  
   - Generación de datasets analíticos listos para BI (`access_data.py`):  
     - Resúmenes horarios de congestión de tráfico  
     - Popularidad de rutas BiciMAD  
-    - Unificación de datos de aparcamientos[4]
+    - Unificación de datos de aparcamientos
 - **Carga a modelos analíticos:**  
   - Los datasets finales se cargan a la zona `access-zone` de MinIO y a PostgreSQL.
 - **Gobernanza y trazabilidad:**  
-  - Metadata y logs de transformaciones en `govern-zone-metadata`.[8]
+  - Metadata y logs de transformaciones en `govern-zone-metadata`.
 
 ---
 
@@ -79,7 +79,7 @@ cd practica2ibd
 2. **Levantar la infraestructura:**
 docker-compose up -d
 
-Esto inicia MinIO, PostgreSQL, Superset y crea los buckets necesarios en MinIO.[9]
+Esto inicia MinIO, PostgreSQL, Superset y crea los buckets necesarios en MinIO.
 
 3. **Ingestar y procesar datos:**
 - Ejecutar scripts de ingestión:
