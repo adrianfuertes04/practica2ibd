@@ -1,0 +1,1 @@
+Para este objetivo hemos usado superset, las visualizaciones se encontraran en los 'charts' del superset.
