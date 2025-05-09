@@ -93,7 +93,8 @@ Esto inicia MinIO, PostgreSQL, Superset y crea los buckets necesarios en MinIO.
   ```
 - Ejecutar el archivo *dimensional_bbdd.py*
 
-- Aunque tenemos el dockerfile que se instale psycopg2, tiene que haber algún problema y se necesita instalarlo desde dentro, por lo que hay que ejecutar:
+> [!WARNING]
+>Aunque tenemos el dockerfile que se instale psycopg2, tiene que haber algún problema y se necesita instalarlo desde dentro, por lo que hay que ejecutar:
   ```
   docker exec -it superset bash
   ```
