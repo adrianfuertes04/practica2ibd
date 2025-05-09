@@ -5,7 +5,7 @@ Infraestructura de datos para la ciudad inteligente de Madrid, integrando MinIO,
 ---
 
 ## 1. Diagrama de la Infraestructura
-![](diagrama.png)
+![](imagenes/diagrama.png)
 
 
 **Componentes:**
@@ -116,9 +116,9 @@ El archivo obj1.ipynb en la carpeta objetivos muestra como los científicos de d
 
 **b) Gestores municipales (SQL/Superset):**
 Los gestores municipales pueden conectarse a la base de datos creada y hacer las consultas que necesiten. En las siguientes capturas se ve el buen funcionamiento:
-![](consulta1.jpg)
-![](consulta2.1.jpg)
-![](consulta2.2.jpg)
-![](consulta2.3.jpg)
-![](consulta2.4.jpg)
+![](imagenes/consulta1.jpg)
+![](imagenes/consulta2.1.jpg)
+![](imagenes/consulta2.2.jpg)
+![](imagenes/consulta2.3.jpg)
+![](imagenes/consulta2.4.jpg)
 
