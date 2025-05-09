@@ -5,6 +5,7 @@ Infraestructura de datos para la ciudad inteligente de Madrid, integrando MinIO,
 ---
 
 ## 1. Diagrama de la Infraestructura
+![](diagrama.png)
 
 
 **Componentes:**
