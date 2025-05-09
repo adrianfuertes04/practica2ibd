@@ -116,7 +116,7 @@ El archivo obj1.ipynb en la carpeta objetivos muestra como los científicos de d
 
 **b) Gestores municipales (SQL/Superset):**
 Los gestores municipales pueden conectarse a la base de datos creada y hacer las consultas que necesiten. En las siguientes capturas se ve el buen funcionamiento:
-![](imagenes/consulta1.jpg)
+![Relacionar densidad de población con infraestructua transporte](imagenes/consulta1.jpg)
 ![](imagenes/consulta2.1.jpg)
 ![](imagenes/consulta2.2.jpg)
 ![](imagenes/consulta2.3.jpg)
