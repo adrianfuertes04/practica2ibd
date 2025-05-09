@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir \
     pyyaml \
     matplotlib \
     Pillow \
+    psycopg2-binary \
     great-expectations
 
 # Set working directory

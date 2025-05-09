@@ -88,12 +88,13 @@ services:
       SUPERSET_ADMIN_USER: admin
       SUPERSET_ADMIN_PASSWORD: adminpassword
     command: >
-          /bin/bash -c "
-          superset db upgrade &&
-          superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin123 &&
-          superset init &&
-          superset run -h 0.0.0.0 -p 8088
-          "
+      /bin/bash -c "
+      superset db upgrade &&
+      superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin123 &&
+      superset init &&
+      superset set-database-uri --database-name madrid_sostenible --uri postgresql://postgres:ejemplo@postgres:5432/madrid_sostenible &&
+      superset run -h 0.0.0.0 -p 8088
+      "
 
     depends_on:
         - postgres
